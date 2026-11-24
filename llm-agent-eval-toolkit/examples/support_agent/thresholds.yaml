@@ -1,0 +1,9 @@
+# The CI gate fails the pull request when any limit is crossed.
+min_accuracy: 0.80               # absolute floor
+max_accuracy_drop: 0.05          # vs main: at most 5 points worse
+max_errors: 0
+max_p95_latency_increase: 0.25   # vs main: p95 latency may grow at most 25%
+max_cost_increase: 0.20          # vs main: cost per case may grow at most 20%
+max_newly_failing_cases: 0       # no case that passed on main may fail now
+scorers:
+  llm_judge: { min_pass_rate: 0.75 }

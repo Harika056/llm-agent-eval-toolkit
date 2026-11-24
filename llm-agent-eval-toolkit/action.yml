@@ -1,0 +1,127 @@
+name: "LLM agent eval gate (Evaluation & Observability Toolkit)"
+description: Run a golden-dataset eval for an LLM agent and fail the pull request when accuracy, latency or cost regress.
+author: Harika Talla
+branding:
+  icon: activity
+  color: blue
+
+inputs:
+  config:
+    description: Path to the eval config (YAML), relative to working-directory.
+    required: true
+  thresholds:
+    description: Path to a thresholds YAML. Default limits apply when empty.
+    required: false
+    default: ""
+  working-directory:
+    description: Folder to run in.
+    required: false
+    default: "."
+  python-version:
+    description: Python version to set up.
+    required: false
+    default: "3.12"
+  install:
+    description: Command that installs your project and its dependencies. Leave empty to skip.
+    required: false
+    default: "pip install -e ."
+  toolkit-spec:
+    description: pip spec for the toolkit (e.g. "llm-agent-eval-toolkit==0.1.0", or a git URL before it is on PyPI).
+    required: false
+    default: "llm-agent-eval-toolkit"
+  baseline-branch:
+    description: Branch whose latest successful run is the baseline for pull requests.
+    required: false
+    default: "main"
+  artifact-name:
+    description: Name of the uploaded results artifact (the baseline for later pull requests).
+    required: false
+    default: "agent-eval-results"
+  github-token:
+    description: Token used to download the baseline artifact.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  accuracy:
+    description: Accuracy of this run (0-1).
+    value: ${{ steps.metrics.outputs.accuracy }}
+  passed:
+    description: '"true" when the gate passed.'
+    value: ${{ steps.gate.outputs.passed }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install "${{ inputs.toolkit-spec }}"
+        if [ -n "${{ inputs.install }}" ]; then ${{ inputs.install }}; fi
+
+    - name: Run eval
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/agent-eval"
+        agent-eval eval "${{ inputs.config }}" -o "$RUNNER_TEMP/agent-eval/results.json" \
+          --traces "$RUNNER_TEMP/agent-eval/traces.db"
+
+    - name: Read metrics
+      id: metrics
+      shell: bash
+      run: |
+        python -c "import json;m=json.load(open('$RUNNER_TEMP/agent-eval/results.json'))['metrics'];print('accuracy=%s' % m['accuracy'])" >> "$GITHUB_OUTPUT"
+
+    - name: Download baseline from ${{ inputs.baseline-branch }}
+      if: github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/agent-eval/baseline"
+        workflow_id=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" --jq .workflow_id)
+        run_id=$(gh run list -R "${{ github.repository }}" --workflow "$workflow_id" --branch "${{ inputs.baseline-branch }}" \
+          --status success --limit 1 --json databaseId --jq '.[0].databaseId' || true)
+        if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
+          gh run download "$run_id" -R "${{ github.repository }}" -n "${{ inputs.artifact-name }}" \
+            -D "$RUNNER_TEMP/agent-eval/baseline" || echo "No baseline artifact in run $run_id"
+        else
+          echo "No successful run on ${{ inputs.baseline-branch }} yet; absolute limits only."
+        fi
+
+    - name: Dashboard
+      shell: bash
+      run: |
+        reports=(--report "$RUNNER_TEMP/agent-eval/results.json")
+        agent-eval dashboard --traces "$RUNNER_TEMP/agent-eval/traces.db" "${reports[@]}" \
+          -o "$RUNNER_TEMP/agent-eval/dashboard.html" --title "Eval: ${{ github.repository }}"
+
+    - name: Upload results
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          ${{ runner.temp }}/agent-eval/results.json
+          ${{ runner.temp }}/agent-eval/dashboard.html
+        if-no-files-found: error
+
+    - name: Gate
+      id: gate
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        args=("$RUNNER_TEMP/agent-eval/results.json" --baseline "$RUNNER_TEMP/agent-eval/baseline/results.json" --allow-missing-baseline)
+        if [ -n "${{ inputs.thresholds }}" ]; then args+=(--thresholds "${{ inputs.thresholds }}"); fi
+        set +e
+        agent-eval gate "${args[@]}"
+        code=$?
+        set -e
+        if [ $code -eq 0 ]; then echo "passed=true" >> "$GITHUB_OUTPUT"; else echo "passed=false" >> "$GITHUB_OUTPUT"; fi
+        exit $code

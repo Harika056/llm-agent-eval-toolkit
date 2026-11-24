@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+*.db
+examples/**/baseline.json
+examples/**/pr.json
+examples/**/rerun.json
+examples/**/dashboard.html
+agent-eval-results.json
+agent-eval-dashboard.html

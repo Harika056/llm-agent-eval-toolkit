@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff check src tests examples
+      - run: ruff format --check src tests examples
+      - run: pytest
+      - run: python -m build
+
+  # The offline example must pass against itself and fail on the simulated regression.
+  demo-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/support_agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ../..
+      - run: agent-eval eval eval.yaml -o baseline.json -q
+      - run: agent-eval eval eval.yaml -o same.json -q
+      - name: Unchanged agent passes the gate
+        run: agent-eval gate same.json --baseline baseline.json --thresholds thresholds.yaml
+      - run: AGENT_VARIANT=regressed agent-eval eval eval.yaml -o regressed.json -q
+      - name: Regressed agent fails the gate
+        run: "! agent-eval gate regressed.json --baseline baseline.json --thresholds thresholds.yaml --title 'Expected failure: simulated regression'"
+
+  # Runs the composite action in this repo exactly as other repos use it.
+  action-selftest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: examples/support_agent
+          config: eval.yaml
+          thresholds: thresholds.yaml
+          toolkit-spec: ${{ github.workspace }}
+          install: ""
+          artifact-name: agent-eval-example-results

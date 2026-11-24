@@ -1,0 +1,6 @@
+# USD per 1M tokens. These "demo-*" models are made up for the offline example.
+# For real models, copy the current numbers from your provider's pricing page.
+models:
+  demo-small:    { input_per_million: 0.15, output_per_million: 0.60 }
+  demo-large:    { input_per_million: 2.50, output_per_million: 10.00 }
+  offline-judge: { input_per_million: 0.0,  output_per_million: 0.0 }

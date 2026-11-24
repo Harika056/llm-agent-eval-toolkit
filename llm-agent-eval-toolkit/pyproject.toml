@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llm-agent-eval-toolkit"
+version = "0.1.0"
+description = "Evaluation & Observability Toolkit for LLM Agents: tracing, latency/token/cost tracking, golden-dataset evals, LLM-as-judge and CI regression gates."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Harika Talla" }]
+keywords = ["llm", "agents", "evaluation", "observability", "opentelemetry", "llm-as-judge", "ci"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
+  "Topic :: System :: Monitoring",
+  "Typing :: Typed",
+]
+dependencies = [
+  "opentelemetry-api>=1.24",
+  "opentelemetry-sdk>=1.24",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+otlp = ["opentelemetry-exporter-otlp-proto-http>=1.24"]
+dev = ["pytest>=8", "ruff>=0.5", "build>=1.2"]
+
+[project.scripts]
+agent-eval = "llm_agent_eval_toolkit.cli:main"
+
+[project.entry-points.pytest11]
+llm_agent_eval_toolkit = "llm_agent_eval_toolkit.pytest_plugin"
+
+[project.urls]
+Homepage = "https://github.com/Harika056/llm-agent-eval-toolkit"
+Demo = "https://harika056.github.io/llm-agent-eval-toolkit/"
+Documentation = "https://github.com/Harika056/llm-agent-eval-toolkit#readme"
+Issues = "https://github.com/Harika056/llm-agent-eval-toolkit/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llm_agent_eval_toolkit"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501", "B905"]  # long HTML/CSS strings in the dashboard; zip lengths are checked explicitly

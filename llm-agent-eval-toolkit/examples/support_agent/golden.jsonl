@@ -1,0 +1,12 @@
+{"id": "refund-basic", "input": "How do I get a refund?", "expected": "Refunds are issued to the original payment method within 5-7 business days.", "tags": ["billing"]}
+{"id": "refund-phrasing", "input": "Can I get my money back for last month?", "expected": "Refunds are issued to the original payment method within 5-7 business days.", "tags": ["billing"]}
+{"id": "password-reset", "input": "I forgot my password, what do I do?", "expected": "Reset your password from Settings > Security > Reset password. The link expires in 30 minutes.", "tags": ["account"]}
+{"id": "login-help", "input": "I can't log in to my account", "expected": "Reset your password from Settings > Security > Reset password. The link expires in 30 minutes.", "tags": ["account"]}
+{"id": "invoice-where", "input": "Where can I find my invoice?", "expected": "Invoices are emailed on the 1st of each month and can be downloaded from Billing > Invoices.", "tags": ["billing"]}
+{"id": "receipt", "input": "I need a receipt for my company", "expected": "Invoices are emailed on the 1st of each month and can be downloaded from Billing > Invoices.", "tags": ["billing"]}
+{"id": "cancel-plan", "input": "How do I cancel my subscription?", "expected": "You can cancel anytime from Billing > Plan. Access continues until the end of the billing period.", "tags": ["billing"]}
+{"id": "export-data", "input": "How can I export my data to CSV?", "expected": "Export your data as CSV from Settings > Data > Export. Large exports are emailed when ready.", "tags": ["data"]}
+{"id": "add-seats", "input": "How do I add team members?", "expected": "Admins can add seats from Billing > Seats. New seats are prorated for the current month.", "tags": ["billing"]}
+{"id": "sso-saml", "input": "Do you support SAML single sign-on?", "expected": "SSO with SAML is available on the Business plan. Configure it under Settings > Security > SSO.", "tags": ["security"]}
+{"id": "api-key", "input": "Where do I create an API key?", "expected": "API keys are created under Settings > Developers. Each key can be scoped to read or write.", "tags": ["developers"]}
+{"id": "out-of-scope", "input": "What's the weather in Chennai?", "expected": "I'm not sure about that. Please contact support@example.com.", "tags": ["fallback"]}

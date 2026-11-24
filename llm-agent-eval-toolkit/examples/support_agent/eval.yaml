@@ -1,0 +1,24 @@
+# agent-eval eval config. Paths are relative to this file.
+name: support-agent
+target: agent:answer            # module:function, called with each case's input
+dataset: golden.jsonl
+pricing: pricing.yaml
+traces: agent_eval.db           # SQLite store for the dashboard
+concurrency: 1
+
+scorers:
+  # Rule-based: the answer must include the key navigation path / number from the reference.
+  - type: custom
+    function: checks:key_facts_present
+  # Never leak another customer's email or an internal URL.
+  - type: not_contains
+    phrases: ["@internal", "admin.example.com"]
+  # LLM-as-judge with a 1-5 rubric. offline_judge is a heuristic stand-in; use openai_judge or gemini_judge for real grading.
+  - type: llm_judge
+    judge: judge:offline_judge
+    rubric: >
+      5 = answers the question with the exact steps or facts in the reference;
+      3 = partly right or vague; 1 = wrong, made up, or doesn't answer.
+    min_score: 1
+    max_score: 5
+    pass_threshold: 4
